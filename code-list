@@ -1,0 +1,27 @@
+#!/usr/bin/env php
+<?php
+        require_once('lib/Exception.classes.php');
+        require_once('lib/CodeListing.classes.php');
+        require_once('lib/Orm.classes.php');
+
+        $cmd = array_shift($argv);
+        switch (array_shift($argv)) {
+                case 'h':
+                case 'help':
+                case '-help':
+                case '--help':
+                        printf("Call:    %s [c|f] [class_1/function_1 class_2/function_2 ... class_n/function_n]\nOptions: c = classes\n         f = functions\n", $cmd);
+                        break;
+
+                case 'c':
+                        CodeListing::classes($argv);
+                        break;
+
+                case 'f':
+                        CodeListing::functions($argv);
+                        break;
+
+                default:
+                        CodeListing::all();
+        }
+?>

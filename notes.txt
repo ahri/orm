@@ -1,0 +1,11 @@
+#TEST_RESULTS
+
+#WORKING_ON
+trying to get object creation sorted in its multiple forms
+
+
+TODO:NOTE01
+need to refactor objectsFromDestinations() code so that we can use the code to
+load an already-existing object with values
+
+object ids need to be per level (shape#1 -> cube#1, shape#1 -> triangle#1)
