@@ -211,7 +211,7 @@ if       (sizeof($_POST) == 0) {
                         $allownull = $tr->td()->input();
                         $allownull->type = 'checkbox';
                         $allownull->name = sprintf('allownull_%s.%s', $class, $p);
-                        if ($o->is_irelationship)
+                        if (!in_array($p, $o->keys) || $o->is_irelationship)
                                 $allownull->checked = 'checked';
 
                         $autoinc = $tr->td()->input();
@@ -248,14 +248,13 @@ if       (sizeof($_POST) == 0) {
                         if (in_array($p, $o->keys))
                                 $key = ' PRIMARY KEY';
 
-                        $properties[] = sprintf('    %s %s%s%s%s%s%s',
+                        $properties[] = sprintf('    %s %s%s%s%s%s',
                                                 $rowMatch->name,
                                                 $rowMatch->type,
                                                 $rowMatch->length,
                                                 $rowMatch->allownull,
                                                 $rowMatch->default,
-                                                $rowMatch->autoinc,
-                                                $key);
+                                                $rowMatch->autoinc);
                 }
 
                 if (!is_null($o->parent)) {
@@ -295,6 +294,9 @@ if       (sizeof($_POST) == 0) {
                                                         $rowMatch->default);
                         }
                 }
+
+                if (sizeof($o->keys) > 0)
+                        $properties[] = sprintf('    PRIMARY KEY (%s)', implode(', ', $o->keys));
 
                 $schema .= sprintf("%s\n);\n\n", implode(",\n", array_merge($properties, $relationships)));
         }
