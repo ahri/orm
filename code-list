@@ -2,7 +2,7 @@
 <?php
         require_once('lib/Exception.classes.php');
         require_once('lib/CodeListing.classes.php');
-        require_once('lib/Orm.classes.php');
+        require_once('Orm.classes.php');
 
         $cmd = array_shift($argv);
         switch (array_shift($argv)) {
