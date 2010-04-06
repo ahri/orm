@@ -12,7 +12,8 @@ require_once('lib/CodeListing.classes.php');
 # public static function t($name, $func, $params, $against_func_str /* $result is passed into this function */, $hide_stack_trace = false)
 Test::init();
 SSql::query("DELETE FROM person WHERE dna_seq = 'abcxyz' AND surname = 'Bloggs' AND given_name = 'Joe'");
-new Person(array('dna_seq'    => 'abcxyz',
+new Person(OrmClass::CONSTR_CMD_POP_FROM_ARR, NULL,
+           array('dna_seq'    => 'abcxyz',
                  'surname'    => 'Bloggs',
                  'given_name' => 'Joe'));
 
@@ -50,7 +51,9 @@ foreach (Orm::load('Person') as $o) {
 if (sizeof($history = SSql::getQueryHistory()) >0)
         printf("Number of SQL queries: %d, SQL Query History\n%s", sizeof($history), print_r($history, true));
 
-printf("Peak memory usage: %.3fMB\n", xdebug_peak_memory_usage() / pow(2, 20));
+if (function_exists('xdebug_peak_memory_usage'))
+        printf("Peak memory usage: %.3fMB\n", xdebug_peak_memory_usage() / pow(2, 20));
+
 #Test::summary('OrmClass');
 Orm::routeFromChain(NULL, 'Person -> (LivesIn) -> Home -> (Neighbours) -> Home -> (Neighbours) -> Home', array((object) array('class' => 'LivesIn')));
 

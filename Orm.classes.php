@@ -1310,8 +1310,7 @@ abstract class Orm
                                 if (!self::isRegisteredClass($name, $class))
                                         throw new OrmException('Class %s is not registered for Schema %s', $class, $name);
 
-                                $obj = new $class($vars, $name);
-                                /*$obj->setLoadedFromDb();*/
+                                $obj = new $class(OrmClass::CONSTR_CMD_POPULATE_SYNCED_ARRAY, $name, $vars);
 
                                 $row_class_objs[sprintf('%s__%s', $alias, $i)] = $obj;
                         }
@@ -1436,25 +1435,54 @@ abstract class OrmClass extends Orm
                         case self::CONSTR_CMD_POP_FROM_DB:
                         case self::CONSTR_CMD_NEW:
                                 $this->setup_name = $name;
+
+                                # shift off known args
+                                array_shift($args);
+                                array_shift($args);
                                 break;
                 }
 
                 switch ($command) {
+                        case self::CONSTR_CMD_POP_FROM_ARR:
+                                $this->applyArray($args[0]);
+                                break;
+                        case self::CONSTR_CMD_POP_FROM_OBJ:
+                                break;
+                        case self::CONSTR_CMD_POP_FROM_DB:
+                                break;
                         case self::CONSTR_CMD_POPULATE_SYNCED_ARRAY:
+                                $this->applyArray($args[0]);
+                                $this->setAllLoaded();
                                 break;
                         default:
+                                throw new OrmInputException('Guessing not supported, please explicitly specify construction type');
                                 self::constructGuess($args);
                 }
+
+                $this->ensureObjectInDb();
         }
 
+        /** Iterate over classes for this object and set them all to "loaded" **/
+        private function setAllLoaded()
+        {
+                $class_reflection = new ReflectionClass(get_class($this));
+                do {
+                        if ($class_reflection->isInstantiable())
+                                $this->setLoadedFromDb($class_reflection->getName());
+
+                } while (($class_reflection = $class_reflection->getParentClass()) && # get the parent
+                          $class_reflection->getName() != __CLASS__);                 # check that we're not hitting the top
+        }
+
+        /** Load given array values into this object **/
         private function applyArray($arr)
         {
-                foreach ($this as $key => $value) {
+                foreach ($this as $key => $value)
                         if (isset($arr[$key]))
                                 $this->$key = $arr[$key];
-                }
         }
 
+        /** Load given object values into this object, duplicating loaded status, too **/
         private function applyObject(Orm $o)
         {
                 if (!($this instanceof $o))
@@ -1469,7 +1497,7 @@ abstract class OrmClass extends Orm
                         }
 
                         if ($class_reflection->isInstantiable())
-                                $this->setLoadedFromDb = $o->getLoadedFromDb($class_reflection->getName());
+                                $this->setLoadedFromDb($o->getLoadedFromDb($class_reflection->getName()));
 
                 } while (($class_reflection = $class_reflection->getParentClass()) && # get the parent
                           $class_reflection->getName() != __CLASS__);                 # check that we're not hitting the top
@@ -1516,7 +1544,7 @@ abstract class OrmClass extends Orm
                 # TODO: refactor this crap
                 switch ($next_step) {
                         case 'create':
-                                $this->createObjectInDb();
+                                $this->ensureObjectInDb();
                                 break;
 
                         case 'load':
@@ -1528,7 +1556,8 @@ abstract class OrmClass extends Orm
                 }
         }
 
-        private final function createObjectInDb()
+        /** Ensure classes exist in the database, skipping already synced classes **/
+        private final function ensureObjectInDb()
         {
                 # WORKING_ON
                 $class_reflection = new ReflectionClass(get_class($this));
