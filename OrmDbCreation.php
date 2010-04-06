@@ -6,7 +6,7 @@ require_once('Config.inc.php');
 ############## datatype stuff
 function getDatatypes()
 {
-        return array('Short Text (e.g. email title)', 'Long Text (e.g. email body)', 'Date', 'Date & Time', 'Integer', 'Float');
+        return array('Short Text (e.g. email title)', 'Long Text (e.g. email body)', 'Date & Time', 'Date', 'Integer', 'Float');
 }
 
 
@@ -31,11 +31,11 @@ function getActualDatatypes($orm_name)
                                                                  'cast'    => 'string',
                                                                  'length'  => NULL,
                                                                  'default' => NULL),
-                                                  (object) array('type'    => 'DATE',
+                                                  (object) array('type'    => 'DATETIME',
                                                                  'cast'    => 'string',
                                                                  'length'  => NULL,
                                                                  'default' => NULL),
-                                                  (object) array('type'    => 'DATETIME',
+                                                  (object) array('type'    => 'DATE',
                                                                  'cast'    => 'string',
                                                                  'length'  => NULL,
                                                                  'default' => NULL),
@@ -59,6 +59,18 @@ function getIdDatatype()
 {
         $id_datatype = array_flip(getDatatypes());
         return $id_datatype['Integer']; # default datatype for ids (Integer)
+}
+
+function getDateDatatype()
+{
+        $id_datatype = array_flip(getDatatypes());
+        return $id_datatype['Date']; # default datatype for dates (Date)
+}
+
+function getTimeDatatype()
+{
+        $id_datatype = array_flip(getDatatypes());
+        return $id_datatype['Date & Time']; # default datatype for times (DateTime)
 }
 
 
@@ -145,6 +157,8 @@ if       (sizeof($_POST) == 0) {
 } elseif (sizeof($_POST) == 1 && !empty($_POST['orm_name'])) {
         $orm_name = $_POST['orm_name'] == '-'? NULL : $_POST['orm_name'];
         $id_datatype = getIdDatatype();
+        $date_datatype = getDateDatatype();
+        $time_datatype = getTimeDatatype();
 
         $form = $body->form();
         $form->method = 'post';
@@ -191,11 +205,18 @@ if       (sizeof($_POST) == 0) {
                         $types = $tr->td()->select();
                         $types->name = sprintf('type_%s.%s',   $class, $p);
 
+                        $selected = false;
                         foreach (getDatatypes() as $key => $type) {
                                 $option = $types->option($type, true);
                                 $option->value = $key;
-                                if ($p == Orm::AUTO_PROPERTY_ID && $key == $id_datatype)
+
+                                if ((!$selected) &&
+                                    (($p == Orm::AUTO_PROPERTY_ID && $key == $id_datatype) ||
+                                     (stristr($p, 'time') && $key == $time_datatype) ||
+                                     (stristr($p, 'date') && $key == $date_datatype))) {
                                         $option->selected = 'selected';
+                                        $selected = true;
+                                }
                         }
 
                         $length = $tr->td()->input();
