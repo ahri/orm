@@ -256,7 +256,7 @@ abstract class Orm
                 return self::getSchema($name)->ssql_name;
         }
 
-        # Takes SQL and checked for a cached result to avoid re-running SQL
+        # Takes SQL and checks for a cached result to avoid re-running SQL
         protected static final function getSqlResult($name, $sql)
         {
                 $hash = sha1($sql);
@@ -1455,7 +1455,7 @@ abstract class OrmClass extends Orm
                                 $this->setAllLoaded();
                                 break;
                         default:
-                                throw new OrmInputException('Guessing not supported, please explicitly specify construction type');
+                                throw new OrmInputException('Guessing not yet supported, please explicitly specify construction type');
                                 self::constructGuess($args);
                 }
 
@@ -1477,9 +1477,15 @@ abstract class OrmClass extends Orm
         /** Load given array values into this object **/
         private function applyArray($arr)
         {
-                foreach ($this as $key => $value)
-                        if (isset($arr[$key]))
+                $id_flag = (self::getKeys($class = get_class($this)) == array(self::AUTO_PROPERTY_ID));
+
+                foreach ($this as $key => $value) {
+                        # TODO: this will not work at all for objects made up of multiple classes with ids -- this needs to be resolved at objectsFromResult() level and here
+                        if ($key == 'ids' && isset($arr[self::AUTO_PROPERTY_ID]))
+                                $this->ids[$class] = $arr[self::AUTO_PROPERTY_ID];
+                        elseif (isset($arr[$key]))
                                 $this->$key = $arr[$key];
+                }
         }
 
         /** Load given object values into this object, duplicating loaded status, too **/
@@ -1585,22 +1591,23 @@ abstract class OrmClass extends Orm
         }
 
         ### Accessors ###
-        public final function getId($class = NULL)
+        public final function getKeyValues($class = NULL)
         {
-                if ($class && !isset($this->ids[$class]))
-                        throw new OrmInputException('Supply a valid class');
+                if (!$class)
+                        $class = get_class($this);
 
-                return $class? $this->ids[$class] : $this->ids[get_class($this)];
-        }
-
-        public final function getKeyValues($class)
-        {
                 if (!($this instanceof $class))
                         throw new OrmInputException('Must supply a class that makes up an object of this type -- '.get_class($this));
 
+                $keys = self::getKeys($class);
+                if ($keys == array(self::AUTO_PROPERTY_ID)) {
+                        return array($this->ids[$class]);
+                }
+
                 $array = array();
-                foreach (self::getKeys($class) as $key)
+                foreach ($keys as $key) {
                         $array[$key] = $this->$key;
+                }
 
                 return $array;
         }
