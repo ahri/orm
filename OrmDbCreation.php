@@ -15,6 +15,21 @@ function getDbType($orm_name)
         return SSql::getType(Orm::getSSqlName($orm_name));
 }
 
+function getAutoIncKeyword($orm_name)
+{
+        switch ($db_type = getDbType($orm_name)) {
+                case 'Dummy':
+                case 'MySQL':
+                case 'MySQLi':
+                        return ' AUTO_INCREMENT';
+                case 'SQLite':
+                        # this page left blank ;) -- SQLite automatically treats integer primary keys as auto_inc
+                        return '';
+                default:
+                        throw new OrmException(sprintf('Sorry, schema generation not yet supported for database type %s', $db_type));
+        }
+}
+
 function getActualDatatypes($orm_name)
 {
         # valid "cast"s are "string", "int" and "NULL"
@@ -93,20 +108,10 @@ function rowMatch($orm_name, $class, $property)
         $length  = empty($length)?  '' : sprintf(' (%s)', $length);
         $default = empty($default)? '' : sprintf(' DEFAULT %s', Orm::sqlVar($orm_name, $default, $datatype->cast));
 
-        if ($autoinc) {
-                switch ($db_type) {
-                        case 'Dummy':
-                        case 'MySQL':
-                        case 'MySQLi':
-                                $autoinc = ' AUTO_INCREMENT';
-                                break;
-                        case 'SQLite':
-                                # this page left blank ;) -- SQLite automatically treats integer primary keys as auto_inc
-                                break;
-                }
-        } else {
+        if ($autoinc)
+                $autoinc = getAutoIncKeyword($orm_name);
+        else
                 $autoinc = '';
-        }
 
         if (!$allownull) {
                 $allownull = ' NOT NULL';
